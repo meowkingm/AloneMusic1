@@ -21,7 +21,7 @@ import config
 def _scrape_spotify(url: str):
     if "/embed/" not in url:
         embed_url = re.sub(
-            r"https?://open\.spotify\.com/", "https://open.spotify.com/embed/", url
+            r"https?://(open|music)\.spotify\.com/", "https://open.spotify.com/embed/", url
         )
     else:
         embed_url = url
@@ -50,7 +50,7 @@ def _scrape_spotify(url: str):
 
 class SpotifyAPI:
     def __init__(self):
-        self.regex = r"^(https:\/\/open.spotify.com\/)(.*)$"
+        self.regex = r"^(https:\/\/(open|music)\.spotify\.com\/)(.*)$"
         self.client_id = config.SPOTIFY_CLIENT_ID
         self.client_secret = config.SPOTIFY_CLIENT_SECRET
         if config.SPOTIFY_CLIENT_ID and config.SPOTIFY_CLIENT_SECRET:
