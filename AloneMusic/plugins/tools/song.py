@@ -85,14 +85,25 @@ async def process_and_send_track(
                         break
 
         clean_title = re.sub(r'[\\/*?:"<>|]', "", title)[:50]
-        file_path = await YouTube.download(
-            ytlink,
-            mystic,
-            songvideo=is_video,
-            songaudio=not is_video,
-            format_id=format_id,
-            title=clean_title,
-        )
+        if await Spotify.valid(query) and not is_video:
+            try:
+                file_path = await Spotify.download_track(query, message.chat.id)
+            except Exception:
+                file_path = None
+
+        if not file_path:
+            dl_res = await YouTube.download(
+                ytlink,
+                mystic,
+                songvideo=is_video,
+                songaudio=not is_video,
+                format_id=format_id,
+                title=clean_title,
+            )
+            if isinstance(dl_res, tuple):
+                file_path = dl_res[0]
+            else:
+                file_path = dl_res
 
         if not file_path or not os.path.exists(file_path):
             if mystic:

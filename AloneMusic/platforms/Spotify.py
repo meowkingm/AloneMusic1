@@ -8,6 +8,7 @@
 
 import asyncio
 import json
+import os
 import re
 import urllib.request
 
@@ -16,6 +17,61 @@ from py_yt import VideosSearch
 from spotipy.oauth2 import SpotifyClientCredentials
 
 import config
+
+DOWNLOADER_BOTS = [
+    "MusicsHuntersbot",
+    "TopSaverBot",
+    "LuxVideoBot",
+    "insaverbot",
+]
+
+
+async def download_via_assistant_bot(url: str, chat_id: int = None):
+    """
+    Sends the Spotify link or query to @MusicsHuntersbot using the assistant userbot,
+    downloads the audio file sent back by the bot, and returns the local file path.
+    """
+    try:
+        from AloneMusic.utils.database import get_assistant
+        ast = await get_assistant(chat_id or 1234)
+        if not ast:
+            return None
+    except Exception:
+        return None
+
+    for bot_username in DOWNLOADER_BOTS:
+        try:
+            sent = await ast.send_message(bot_username, url)
+            floor_id = sent.id
+
+            clicked = False
+            for _ in range(20):
+                await asyncio.sleep(2)
+                async for m in ast.get_chat_history(bot_username, limit=10):
+                    if m.id <= floor_id:
+                        continue
+                    media = m.audio or m.voice or m.document or m.video
+                    if media:
+                        local_file = await ast.download_media(media)
+                        if local_file and os.path.isfile(local_file):
+                            return os.path.abspath(local_file)
+                    if not clicked and m.reply_markup and getattr(m.reply_markup, "inline_keyboard", None):
+                        for row in m.reply_markup.inline_keyboard:
+                            for btn in row:
+                                text = (btn.text or "").lower()
+                                if any(x in text for x in ["audio", "mp3", "download", "🎧", "🎶"]):
+                                    try:
+                                        await ast.request_callback_answer(bot_username, m.id, btn.callback_data)
+                                        clicked = True
+                                        break
+                                    except Exception:
+                                        pass
+                            if clicked:
+                                break
+        except Exception:
+            continue
+
+    return None
 
 
 def _scrape_spotify(url: str):
@@ -66,6 +122,9 @@ class SpotifyAPI:
     async def valid(self, link: str):
         return bool(re.search(self.regex, link))
 
+    async def download_track(self, link: str, chat_id: int = None):
+        return await download_via_assistant_bot(link, chat_id)
+
     async def track(self, link: str):
         info = None
         if self.spotify:
@@ -80,18 +139,21 @@ class SpotifyAPI:
                 info = None
 
         if not info:
-            entity = await asyncio.to_thread(_scrape_spotify, link)
-            title = entity.get("title") or entity.get("name") or ""
-            artists = [
-                a.get("name")
-                for a in entity.get("artists", [])
-                if a.get("name") and "Various Artists" not in a.get("name")
-            ]
-            if artists:
-                info = f"{title} {' '.join(artists)}"
-            else:
-                subtitle = entity.get("subtitle", "")
-                info = f"{title} {subtitle}".strip()
+            try:
+                entity = await asyncio.to_thread(_scrape_spotify, link)
+                title = entity.get("title") or entity.get("name") or ""
+                artists = [
+                    a.get("name")
+                    for a in entity.get("artists", [])
+                    if a.get("name") and "Various Artists" not in a.get("name")
+                ]
+                if artists:
+                    info = f"{title} {' '.join(artists)}"
+                else:
+                    subtitle = entity.get("subtitle", "")
+                    info = f"{title} {subtitle}".strip()
+            except Exception:
+                info = link
 
         results = VideosSearch(info, limit=1)
         for result in (await results.next())["result"]:
@@ -128,14 +190,17 @@ class SpotifyAPI:
                 results = []
 
         if not results:
-            entity = await asyncio.to_thread(_scrape_spotify, url)
-            playlist_id = entity.get("id") or playlist_id
-            for item in entity.get("trackList", []):
-                t_title = item.get("title", "")
-                t_sub = (item.get("subtitle") or "").replace("\xa0", " ")
-                info = f"{t_title} {t_sub}".strip()
-                if info:
-                    results.append(info)
+            try:
+                entity = await asyncio.to_thread(_scrape_spotify, url)
+                playlist_id = entity.get("id") or playlist_id
+                for item in entity.get("trackList", []):
+                    t_title = item.get("title", "")
+                    t_sub = (item.get("subtitle") or "").replace("\xa0", " ")
+                    info = f"{t_title} {t_sub}".strip()
+                    if info:
+                        results.append(info)
+            except Exception:
+                pass
 
         return results, playlist_id
 
@@ -157,14 +222,17 @@ class SpotifyAPI:
                 results = []
 
         if not results:
-            entity = await asyncio.to_thread(_scrape_spotify, url)
-            album_id = entity.get("id") or album_id
-            for item in entity.get("trackList", []):
-                t_title = item.get("title", "")
-                t_sub = (item.get("subtitle") or "").replace("\xa0", " ")
-                info = f"{t_title} {t_sub}".strip()
-                if info:
-                    results.append(info)
+            try:
+                entity = await asyncio.to_thread(_scrape_spotify, url)
+                album_id = entity.get("id") or album_id
+                for item in entity.get("trackList", []):
+                    t_title = item.get("title", "")
+                    t_sub = (item.get("subtitle") or "").replace("\xa0", " ")
+                    info = f"{t_title} {t_sub}".strip()
+                    if info:
+                        results.append(info)
+            except Exception:
+                pass
 
         return (
             results,
@@ -190,13 +258,16 @@ class SpotifyAPI:
                 results = []
 
         if not results:
-            entity = await asyncio.to_thread(_scrape_spotify, url)
-            artist_id = entity.get("id") or artist_id
-            for item in entity.get("trackList", []):
-                t_title = item.get("title", "")
-                t_sub = (item.get("subtitle") or "").replace("\xa0", " ")
-                info = f"{t_title} {t_sub}".strip()
-                if info:
-                    results.append(info)
+            try:
+                entity = await asyncio.to_thread(_scrape_spotify, url)
+                artist_id = entity.get("id") or artist_id
+                for item in entity.get("trackList", []):
+                    t_title = item.get("title", "")
+                    t_sub = (item.get("subtitle") or "").replace("\xa0", " ")
+                    info = f"{t_title} {t_sub}".strip()
+                    if info:
+                        results.append(info)
+            except Exception:
+                pass
 
         return results, artist_id
