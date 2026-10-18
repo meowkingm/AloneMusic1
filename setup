@@ -15,10 +15,9 @@ ${reset}"
 
 sleep 1
 
+SUDO=""
 if command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
-else
-    SUDO=""
 fi
 
 echo -e "${yellow}Updating system...${reset}"
@@ -28,12 +27,12 @@ echo -e "${yellow}Installing system packages...${reset}"
 $SUDO apt install -y python3 python3-pip python3-venv git ffmpeg libffi-dev libopus0
 
 if [ ! -f "pyproject.toml" ]; then
-    if [ ! -d "AloneMusic" ]; then
-        git clone https://github.com/TheAloneTeam/AloneMusic.git
-        cd AloneMusic
-    else
-        cd AloneMusic && git pull
-    fi
+  if [ ! -d "AloneMusic" ]; then
+    git clone https://github.com/TheAloneTeam/AloneMusic.git
+    cd AloneMusic
+  else
+    cd AloneMusic && git pull
+  fi
 fi
 
 echo -e "${yellow}Creating venv...${reset}"
