@@ -86,14 +86,28 @@ class SpotifyAPI:
     async def valid(self, link: str):
         return bool(re.search(self.regex, str(link)))
 
-    async def download_track(self, link: str, chat_id: int = None):
+    async def download_track(self, link: str, chat_id: int = None, *args, **kwargs):
         """Constructs API-based stream/download URL for the given Spotify track link."""
         return await download_assistant(link, "audio")
 
-    async def download(self, link: str, dl_type: str = "audio"):
-        """Resolves stream/download URL via API_URL and API_KEY."""
+    async def download(
+        self,
+        link: str,
+        mystic=None,
+        video=None,
+        videoid=None,
+        songaudio=None,
+        songvideo=None,
+        format_id=None,
+        title=None,
+        instant=None,
+        *args,
+        **kwargs,
+    ):
+        """Resolves stream/download URL via API_URL and API_KEY matching Youtube.py signatures."""
+        dl_type = "video" if (video or songvideo) else "audio"
         stream_link = await download_assistant(link, dl_type)
-        return stream_link
+        return stream_link, False
 
     async def track(self, link: str):
         info = None
