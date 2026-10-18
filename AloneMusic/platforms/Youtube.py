@@ -14,6 +14,28 @@ import urllib.parse
 import httpx
 import yt_dlp
 
+# ── Patch httpx 0.28+ proxies parameter for compatibility with youtubesearchpython
+_orig_async_client_init = httpx.AsyncClient.__init__
+
+
+def _patched_async_client_init(self, *args, **kwargs):
+    if "proxies" in kwargs:
+        p = kwargs.pop("proxies")
+        if "proxy" not in kwargs and p:
+            if isinstance(p, dict):
+                kwargs["proxy"] = (
+                    p.get("all://")
+                    or p.get("https://")
+                    or p.get("http://")
+                    or next(iter(p.values()), None)
+                )
+            else:
+                kwargs["proxy"] = p
+    return _orig_async_client_init(self, *args, **kwargs)
+
+
+httpx.AsyncClient.__init__ = _patched_async_client_init
+
 # ── Config ────────────────────────────────────────────────────
 API_URL = os.getenv("API_URL", "https://www.riteshyt.in").rstrip("/")
 API_KEY = os.getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
