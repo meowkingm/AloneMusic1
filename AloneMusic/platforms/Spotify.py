@@ -17,8 +17,14 @@ import spotipy
 from youtubesearchpython import VideosSearch
 from spotipy.oauth2 import SpotifyClientCredentials
 
-API_URL = os.getenv("API_URL", "https://api.riteshyt.in").rstrip("/")
-API_KEY = os.getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
+import config
+
+API_URL = getattr(
+    config, "API_URL", os.getenv("API_URL", "https://www.riteshyt.in")
+).rstrip("/")
+API_KEY = getattr(
+    config, "API_KEY", os.getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
+)
 
 
 async def download_assistant(query: str, dl_type: str = "audio") -> Optional[str]:
@@ -68,8 +74,16 @@ def _scrape_spotify(url: str):
 class SpotifyAPI:
     def __init__(self):
         self.regex = r"^(https:\/\/(open|music)\.spotify\.com\/)(.*)$"
-        self.client_id = os.environ.get("SPOTIFY_CLIENT_ID", "").strip()
-        self.client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET", "").strip()
+        self.client_id = (
+            getattr(config, "SPOTIFY_CLIENT_ID", None)
+            or os.environ.get("SPOTIFY_CLIENT_ID", "")
+            or ""
+        ).strip()
+        self.client_secret = (
+            getattr(config, "SPOTIFY_CLIENT_SECRET", None)
+            or os.environ.get("SPOTIFY_CLIENT_SECRET", "")
+            or ""
+        ).strip()
         if self.client_id and self.client_secret:
             try:
                 self.client_credentials_manager = SpotifyClientCredentials(
