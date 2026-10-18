@@ -62,6 +62,11 @@ AUTO_LEAVING_ASSISTANT = bool(getenv("AUTO_LEAVING_ASSISTANT", None))
 SPOTIFY_CLIENT_ID = getenv("SPOTIFY_CLIENT_ID", None)
 SPOTIFY_CLIENT_SECRET = getenv("SPOTIFY_CLIENT_SECRET", None)
 
+# YouTube API & Download Server configuration
+API_URL = getenv("API_URL", "https://www.riteshyt.in")
+API_KEY = getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
+COOKIES_FILE = getenv("COOKIES_FILE", "cookies.txt")
+
 
 # Maximum limit for fetching playlist's track from youtube, spotify, apple links.
 PLAYLIST_FETCH_LIMIT = int(getenv("PLAYLIST_FETCH_LIMIT", 25))

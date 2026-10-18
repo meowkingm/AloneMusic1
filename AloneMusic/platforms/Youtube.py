@@ -37,8 +37,14 @@ def _patched_async_client_init(self, *args, **kwargs):
 httpx.AsyncClient.__init__ = _patched_async_client_init
 
 # ── Config ────────────────────────────────────────────────────
-API_URL = os.getenv("API_URL", "https://www.riteshyt.in").rstrip("/")
-API_KEY = os.getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
+import config
+
+API_URL = getattr(
+    config, "API_URL", os.getenv("API_URL", "https://www.riteshyt.in")
+).rstrip("/")
+API_KEY = getattr(
+    config, "API_KEY", os.getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
+)
 
 # ── Dynamic imports with graceful fallbacks ───────────────────
 try:
