@@ -18,7 +18,7 @@ from youtubesearchpython import VideosSearch
 from spotipy.oauth2 import SpotifyClientCredentials
 
 API_URL = os.getenv("API_URL", "https://api.riteshyt.in").rstrip("/")
-API_KEY = os.getenv("API_KEY", "")
+API_KEY = os.getenv("API_KEY", "riteshfree9f664e9f2b0a4d5a85a35738")
 
 
 async def download_assistant(query: str, dl_type: str = "audio") -> Optional[str]:
