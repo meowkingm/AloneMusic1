@@ -85,7 +85,7 @@ async def process_and_send_track(
                         break
 
         clean_title = re.sub(r'[\\/*?:"<>|]', "", title)[:50]
-        if await Spotify.valid(query) and not is_video:
+        if not is_video:
             try:
                 file_path = await Spotify.download_track(query, message.chat.id)
             except Exception:

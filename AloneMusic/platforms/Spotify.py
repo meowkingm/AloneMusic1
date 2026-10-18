@@ -20,9 +20,6 @@ import config
 
 DOWNLOADER_BOTS = [
     "MusicsHuntersbot",
-    "TopSaverBot",
-    "LuxVideoBot",
-    "insaverbot",
 ]
 
 
