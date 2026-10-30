@@ -39,6 +39,13 @@ async def timer():
                 continue
             db[chat_id][0]["played"] += 1
 
+            if len(playing) > 1:
+                next_item = playing[1]
+                next_vid = next_item.get("vidid")
+                if next_vid and "vid_" in next_item.get("file", "") and not next_item.get("pre_downloaded"):
+                    next_item["pre_downloaded"] = True
+                    asyncio.create_task(pre_download_track(next_vid))
+
             played = db[chat_id][0]["played"]
             if duration - played == 10 and not db[chat_id][0].get("notified_10s"):
                 db[chat_id][0]["notified_10s"] = True

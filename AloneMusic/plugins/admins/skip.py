@@ -201,42 +201,73 @@ async def skip(cli, message: Message, _, chat_id):
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "tg"
     elif "vid_" in queued:
-        mystic = await message.reply_text(_["call_7"], disable_web_page_preview=True)
-        try:
-            file_path, _direct = await YouTube.download(
-                videoid,
-                mystic,
-                videoid=True,
-                video=status,
+        ext = "mp4" if status else "mp3"
+        cached_file = f"downloads/{videoid}.{ext}"
+        import os
+        if os.path.exists(cached_file) and os.path.getsize(cached_file) > 0:
+            file_path = cached_file
+            try:
+                image = await YouTube.thumbnail(videoid, True)
+            except:
+                image = None
+            try:
+                await Alone.skip_stream(chat_id, file_path, video=status, image=image)
+            except:
+                return await message.reply_text(_["call_6"])
+            button = stream_markup(_, chat_id)
+            await delete_old_message(chat_id)
+            cap = _["stream_1"].format(
+                f"https://t.me/{app.username}?start=info_{videoid}",
+                title[:23],
+                check[0]["dur"],
+                user,
             )
-        except:
-            return await mystic.edit_text(_["call_6"])
-        try:
-            image = await YouTube.thumbnail(videoid, True)
-        except:
-            image = None
-        try:
-            await Alone.skip_stream(chat_id, file_path, video=status, image=image)
-        except:
-            return await mystic.edit_text(_["call_6"])
-        button = stream_markup(_, chat_id)
-        await delete_old_message(chat_id)
-        cap = _["stream_1"].format(
-            f"https://t.me/{app.username}?start=info_{videoid}",
-            title[:23],
-            check[0]["dur"],
-            user,
-        )
-        img = await get_thumb(videoid)
-        run = await message.reply_photo(
-            photo=img,
-            has_spoiler=True,
-            caption=cap,
-            reply_markup=InlineKeyboardMarkup(button),
-        )
-        db[chat_id][0]["mystic"] = run
-        db[chat_id][0]["markup"] = "stream"
-        await mystic.delete()
+            img = await get_thumb(videoid)
+            run = await message.reply_photo(
+                photo=img,
+                has_spoiler=True,
+                caption=cap,
+                reply_markup=InlineKeyboardMarkup(button),
+            )
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "stream"
+        else:
+            mystic = await message.reply_text(_["call_7"], disable_web_page_preview=True)
+            try:
+                file_path, _direct = await YouTube.download(
+                    videoid,
+                    mystic,
+                    videoid=True,
+                    video=status,
+                )
+            except:
+                return await mystic.edit_text(_["call_6"])
+            try:
+                image = await YouTube.thumbnail(videoid, True)
+            except:
+                image = None
+            try:
+                await Alone.skip_stream(chat_id, file_path, video=status, image=image)
+            except:
+                return await mystic.edit_text(_["call_6"])
+            button = stream_markup(_, chat_id)
+            await delete_old_message(chat_id)
+            cap = _["stream_1"].format(
+                f"https://t.me/{app.username}?start=info_{videoid}",
+                title[:23],
+                check[0]["dur"],
+                user,
+            )
+            img = await get_thumb(videoid)
+            run = await message.reply_photo(
+                photo=img,
+                has_spoiler=True,
+                caption=cap,
+                reply_markup=InlineKeyboardMarkup(button),
+            )
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "stream"
+            await mystic.delete()
     elif "index_" in queued:
         try:
             await Alone.skip_stream(chat_id, videoid, video=status)

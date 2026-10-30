@@ -255,44 +255,75 @@ async def del_back_playlist(client, CallbackQuery, _):
             db[chat_id][0]["markup"] = "tg"
             await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
         elif "vid_" in queued:
-            mystic = await CallbackQuery.message.reply_text(
-                _["call_7"], disable_web_page_preview=True
-            )
-            try:
-                file_path, _direct = await YouTube.download(
-                    videoid,
-                    mystic,
-                    videoid=True,
-                    video=status,
+            ext = "mp4" if status else "mp3"
+            cached_file = f"downloads/{videoid}.{ext}"
+            import os
+            if os.path.exists(cached_file) and os.path.getsize(cached_file) > 0:
+                file_path = cached_file
+                try:
+                    image = await YouTube.thumbnail(videoid, True)
+                except:
+                    image = None
+                try:
+                    await Alone.skip_stream(chat_id, file_path, video=status, image=image)
+                except:
+                    return await CallbackQuery.message.reply_text(_["call_6"])
+                button = stream_markup(_, chat_id)
+                cap = _["stream_1"].format(
+                    f"https://t.me/{app.username}?start=info_{videoid}",
+                    title[:23],
+                    duration,
+                    user,
                 )
-            except:
-                return await mystic.edit_text(_["call_6"])
-            try:
-                image = await YouTube.thumbnail(videoid, True)
-            except:
-                image = None
-            try:
-                await Alone.skip_stream(chat_id, file_path, video=status, image=image)
-            except:
-                return await mystic.edit_text(_["call_6"])
-            button = stream_markup(_, chat_id)
-            cap = _["stream_1"].format(
-                f"https://t.me/{app.username}?start=info_{videoid}",
-                title[:23],
-                duration,
-                user,
-            )
-            img = await get_thumb(videoid)
-            run = await CallbackQuery.message.reply_photo(
-                photo=img,
-                has_spoiler=True,
-                caption=cap,
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "stream"
-            await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
-            await mystic.delete()
+                img = await get_thumb(videoid)
+                run = await CallbackQuery.message.reply_photo(
+                    photo=img,
+                    has_spoiler=True,
+                    caption=cap,
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "stream"
+                await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
+            else:
+                mystic = await CallbackQuery.message.reply_text(
+                    _["call_7"], disable_web_page_preview=True
+                )
+                try:
+                    file_path, _direct = await YouTube.download(
+                        videoid,
+                        mystic,
+                        videoid=True,
+                        video=status,
+                    )
+                except:
+                    return await mystic.edit_text(_["call_6"])
+                try:
+                    image = await YouTube.thumbnail(videoid, True)
+                except:
+                    image = None
+                try:
+                    await Alone.skip_stream(chat_id, file_path, video=status, image=image)
+                except:
+                    return await mystic.edit_text(_["call_6"])
+                button = stream_markup(_, chat_id)
+                cap = _["stream_1"].format(
+                    f"https://t.me/{app.username}?start=info_{videoid}",
+                    title[:23],
+                    duration,
+                    user,
+                )
+                img = await get_thumb(videoid)
+                run = await CallbackQuery.message.reply_photo(
+                    photo=img,
+                    has_spoiler=True,
+                    caption=cap,
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "stream"
+                await CallbackQuery.edit_message_text(txt, reply_markup=close_markup(_))
+                await mystic.delete()
         elif "index_" in queued:
             try:
                 await Alone.skip_stream(chat_id, videoid, video=status)
