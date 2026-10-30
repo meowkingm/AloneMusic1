@@ -55,6 +55,8 @@ autoend = {}
 counter = {}
 autoplay_in_progress = {}
 upcoming_message = {}
+played_history = {}
+status_messages = {}
 
 
 async def delete_upcoming_message(chat_id: int):
@@ -66,18 +68,19 @@ async def delete_upcoming_message(chat_id: int):
         pass
 
 
-async def fetch_artist_tracks(artist_name: str, vidid: str | None = None):
+async def fetch_artist_tracks(artist_name: str, vidid: str | None = None, chat_id: int | None = None):
     tracks = []
+    history = played_history.get(chat_id, []) if chat_id else []
     if artist_name:
         try:
             from youtubesearchpython.__future__ import VideosSearch
 
-            search = VideosSearch(f"{artist_name} songs", limit=10)
+            search = VideosSearch(f"{artist_name} songs", limit=20)
             res = await search.next()
             if res and res.get("result"):
                 for item in res["result"]:
                     vid = item.get("id")
-                    if vid:
+                    if vid and vid not in history and vidid != vid:
                         tracks.append(
                             {
                                 "vidid": vid,
@@ -92,7 +95,9 @@ async def fetch_artist_tracks(artist_name: str, vidid: str | None = None):
     if not tracks and vidid:
         try:
             rel_vids = await YouTube.get_related_videos(vidid)
-            for vid in rel_vids[:10]:
+            for vid in rel_vids[:15]:
+                if vid in history or vid == vidid:
+                    continue
                 title, dur_min, _dur_sec, _thumb, _v = await YouTube.details(vid, True)
                 if title and dur_min:
                     tracks.append(
@@ -108,10 +113,21 @@ async def fetch_artist_tracks(artist_name: str, vidid: str | None = None):
     return tracks
 
 
+async def delete_status_message(chat_id: int):
+    try:
+        msg = status_messages.pop(chat_id, None)
+        if msg:
+            await msg.delete()
+    except Exception:
+        pass
+
+
 async def _clear_(chat_id: int):
     db[chat_id] = []
     autoplay_in_progress.pop(chat_id, None)
+    played_history.pop(chat_id, None)
     await delete_upcoming_message(chat_id)
+    await delete_status_message(chat_id)
     await remove_active_video_chat(chat_id)
     await remove_active_chat(chat_id)
 
@@ -395,6 +411,7 @@ class Call(PyTgCalls):
     async def change_stream(self, client: PyTgCalls, chat_id: int):
         await delete_old_message(chat_id)
         await delete_upcoming_message(chat_id)
+        await delete_status_message(chat_id)
         check = db.get(chat_id)
         popped = None
         loop = await get_loop(chat_id)
@@ -405,6 +422,13 @@ class Call(PyTgCalls):
                 loop = loop - 1
                 await set_loop(chat_id, loop)
             await auto_clean(popped)
+            if popped and isinstance(popped, dict):
+                p_vid = popped.get("vidid")
+                if p_vid:
+                    if chat_id not in played_history:
+                        played_history[chat_id] = []
+                    if p_vid not in played_history[chat_id]:
+                        played_history[chat_id].append(p_vid)
             if not check:
                 is_atp = await get_autoplay(chat_id)
                 if is_atp and not autoplay_in_progress.get(chat_id):
@@ -421,7 +445,7 @@ class Call(PyTgCalls):
                             artist_name = t_title.strip()
                     popped_vidid = popped.get("vidid") if isinstance(popped, dict) else None
                     if artist_name or popped_vidid:
-                        artist_tracks = await fetch_artist_tracks(artist_name, popped_vidid)
+                        artist_tracks = await fetch_artist_tracks(artist_name, popped_vidid, chat_id)
                         if artist_tracks:
                             autoplay_in_progress[chat_id] = True
                             user_by = (
@@ -560,6 +584,7 @@ class Call(PyTgCalls):
             db[chat_id][0]["markup"] = "tg"
         elif "vid_" in queued:
             mystic = await app.send_message(original_chat_id, _["call_7"])
+            status_messages[chat_id] = mystic
             try:
                 file_path, _direct = await YouTube.download(
                     videoid,
@@ -568,9 +593,11 @@ class Call(PyTgCalls):
                     video=video,
                 )
             except Exception:
+                await delete_status_message(chat_id)
                 return await mystic.edit_text(
                     _["call_6"], disable_web_page_preview=True
                 )
+            await delete_status_message(chat_id)
             stream = self._build_stream(file_path, video=video)
             try:
                 await self._play_on_assistant(client, chat_id, stream)

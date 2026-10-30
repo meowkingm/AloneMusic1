@@ -14,7 +14,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 import config
 from AloneMusic import YouTube, app
-from AloneMusic.core.call import Alone, delete_upcoming_message
+from AloneMusic.core.call import Alone, delete_status_message, delete_upcoming_message
 from AloneMusic.misc import SUDOERS, db
 from AloneMusic.plugins.admins.skip import check_autoplay_on_skip
 from AloneMusic.utils.database import (
@@ -166,6 +166,7 @@ async def del_back_playlist(client, CallbackQuery, _):
         await CallbackQuery.message.delete()
     elif command == "Skip" or command == "Replay":
         await delete_upcoming_message(chat_id)
+        await delete_status_message(chat_id)
         check = db.get(chat_id)
         if command == "Skip":
             txt = f"➻ sᴛʀᴇᴀᴍ sᴋɪᴩᴩᴇᴅ 🎄\n│ \n└ʙʏ : {mention} 🥀"

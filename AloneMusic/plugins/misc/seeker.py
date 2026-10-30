@@ -9,10 +9,18 @@
 
 import asyncio
 
-from AloneMusic import app
-from AloneMusic.core.call import upcoming_message
+from AloneMusic import YouTube, app
+from AloneMusic.core.call import autoplay_in_progress, fetch_artist_tracks, upcoming_message
 from AloneMusic.misc import db
 from AloneMusic.utils.database import get_active_chats, get_autoplay, is_music_playing
+from AloneMusic.utils.stream.queue import put_queue
+
+
+async def pre_download_track(vidid: str):
+    try:
+        await YouTube.download(vidid, None, videoid=True, video=False)
+    except Exception:
+        pass
 
 
 async def timer():
@@ -34,20 +42,49 @@ async def timer():
             played = db[chat_id][0]["played"]
             if duration - played == 10 and not db[chat_id][0].get("notified_10s"):
                 db[chat_id][0]["notified_10s"] = True
-                next_title = None
-                if len(playing) > 1:
-                    next_title = playing[1].get("title")
-                elif await get_autoplay(chat_id):
-                    artist_name = playing[0].get("artist")
+
+                if len(playing) == 1 and await get_autoplay(chat_id) and not autoplay_in_progress.get(chat_id):
+                    curr = playing[0]
+                    artist_name = curr.get("artist")
                     if not artist_name:
-                        t_title = playing[0].get("title", "")
+                        t_title = curr.get("title", "")
                         if " - " in t_title:
                             artist_name = t_title.split(" - ")[0].strip()
                         elif " " in t_title:
                             artist_name = t_title.split()[0].strip()
                         else:
                             artist_name = t_title.strip()
-                    next_title = f"Autoplay ({artist_name})" if artist_name else "Autoplay Track"
+                    curr_vidid = curr.get("vidid")
+                    artist_tracks = await fetch_artist_tracks(artist_name, curr_vidid, chat_id)
+                    if artist_tracks:
+                        autoplay_in_progress[chat_id] = True
+                        user_by = curr.get("by", "Autoplay")
+                        user_id = curr.get("user_id", 0)
+                        orig_cid = curr.get("chat_id", chat_id)
+                        for trk in artist_tracks:
+                            vidid = trk.get("vidid")
+                            title = trk.get("title")
+                            dur_min = trk.get("duration_min", "03:00")
+                            await put_queue(
+                                chat_id,
+                                orig_cid,
+                                f"vid_{vidid}",
+                                title,
+                                dur_min,
+                                user_by,
+                                vidid,
+                                user_id,
+                                "audio",
+                                artist=artist_name,
+                            )
+
+                next_title = None
+                if len(playing) > 1:
+                    next_item = playing[1]
+                    next_title = next_item.get("title")
+                    next_vid = next_item.get("vidid")
+                    if next_vid and "vid_" in next_item.get("file", ""):
+                        asyncio.create_task(pre_download_track(next_vid))
 
                 if next_title:
                     try:

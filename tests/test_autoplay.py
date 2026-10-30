@@ -5,7 +5,7 @@ import asyncio
 from AloneMusic.utils.database import get_autoplay, set_autoplay, autoplay
 from AloneMusic.utils.stream.queue import put_queue, put_queue_index
 from AloneMusic.misc import db
-from AloneMusic.core.call import Call, autoplay_in_progress, delete_upcoming_message, fetch_artist_tracks, upcoming_message
+from AloneMusic.core.call import Call, autoplay_in_progress, delete_status_message, delete_upcoming_message, fetch_artist_tracks, played_history, status_messages, upcoming_message
 from AloneMusic.plugins.admins.skip import check_autoplay_on_skip
 from AloneMusic.plugins.misc.seeker import timer
 
@@ -16,6 +16,9 @@ class TestAutoplay(unittest.IsolatedAsyncioTestCase):
         db.clear()
         autoplay.clear()
         autoplay_in_progress.clear()
+        played_history.clear()
+        upcoming_message.clear()
+        status_messages.clear()
 
     async def test_get_and_set_autoplay_defaults(self):
         chat_id = -100123456789
@@ -51,6 +54,31 @@ class TestAutoplay(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(tracks), 1)
             self.assertEqual(tracks[0]["vidid"], "rel_vid_1")
             self.assertEqual(tracks[0]["title"], "Related Song")
+
+    async def test_fetch_artist_tracks_history_filter(self):
+        chat_id = -100123456789
+        played_history[chat_id] = ["vid_repeat"]
+
+        with patch("youtubesearchpython.__future__.VideosSearch.next", new_callable=AsyncMock) as mock_search_next:
+            mock_search_next.return_value = {
+                "result": [
+                    {"id": "vid_repeat", "title": "Repeat Song", "duration": "03:00"},
+                    {"id": "vid_new", "title": "New Song", "duration": "03:30"},
+                ]
+            }
+
+            tracks = await fetch_artist_tracks("Test Artist", chat_id=chat_id)
+            self.assertEqual(len(tracks), 1)
+            self.assertEqual(tracks[0]["vidid"], "vid_new")
+
+    async def test_delete_status_message(self):
+        chat_id = -100123456789
+        mock_msg = AsyncMock()
+        status_messages[chat_id] = mock_msg
+
+        await delete_status_message(chat_id)
+        mock_msg.delete.assert_called_once()
+        self.assertNotIn(chat_id, status_messages)
 
     async def test_delete_upcoming_message(self):
         chat_id = -100123456789
