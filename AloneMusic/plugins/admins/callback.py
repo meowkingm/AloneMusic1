@@ -140,8 +140,14 @@ async def del_back_playlist(client, CallbackQuery, _):
                     return await CallbackQuery.answer(_["admin_14"], show_alert=True)
     if command == "Pause":
         if not await is_music_playing(chat_id):
-            return await CallbackQuery.answer(_["admin_1"], show_alert=True)
-        await CallbackQuery.answer()
+            try:
+                return await CallbackQuery.answer(_["admin_1"], show_alert=True)
+            except Exception:
+                return
+        try:
+            await CallbackQuery.answer()
+        except Exception:
+            pass
         await music_off(chat_id)
         await Alone.pause_stream(chat_id)
         await CallbackQuery.message.reply_text(
@@ -149,15 +155,24 @@ async def del_back_playlist(client, CallbackQuery, _):
         )
     elif command == "Resume":
         if await is_music_playing(chat_id):
-            return await CallbackQuery.answer(_["admin_3"], show_alert=True)
-        await CallbackQuery.answer()
+            try:
+                return await CallbackQuery.answer(_["admin_3"], show_alert=True)
+            except Exception:
+                return
+        try:
+            await CallbackQuery.answer()
+        except Exception:
+            pass
         await music_on(chat_id)
         await Alone.resume_stream(chat_id)
         await CallbackQuery.message.reply_text(
             _["admin_4"].format(mention), reply_markup=close_markup(_)
         )
     elif command == "Stop" or command == "End":
-        await CallbackQuery.answer()
+        try:
+            await CallbackQuery.answer()
+        except Exception:
+            pass
         await Alone.stop_stream(chat_id)
         await set_loop(chat_id, 0)
         await CallbackQuery.message.reply_text(
@@ -165,6 +180,10 @@ async def del_back_playlist(client, CallbackQuery, _):
         )
         await CallbackQuery.message.delete()
     elif command == "Skip" or command == "Replay":
+        try:
+            await CallbackQuery.answer()
+        except Exception:
+            pass
         await delete_upcoming_message(chat_id)
         await delete_status_message(chat_id)
         check = db.get(chat_id)
@@ -211,7 +230,6 @@ async def del_back_playlist(client, CallbackQuery, _):
                     return
         else:
             txt = f"➻ sᴛʀᴇᴀᴍ ʀᴇ-ᴘʟᴀʏᴇᴅ 🎄\n│ \n└ʙʏ : {mention} 🥀"
-        await CallbackQuery.answer()
         if not check:
             return
         queued = check[0]["file"]
