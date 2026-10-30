@@ -160,16 +160,16 @@ async def stream(
             except Exception:
                 file_path = None
 
-        if not file_path:
-            try:
-                file_path, direct = await YouTube.download(
-                    vidid, mystic, videoid=True, video=status
-                )
-            except Exception as ex:
-                print(ex)
-                raise AssistantErr(_["play_14"])
         artist_name = result.get("artist") if isinstance(result, dict) else None
         if await is_active_chat(chat_id):
+            if not file_path:
+                try:
+                    file_path, direct = await YouTube.download(
+                        vidid, mystic, videoid=True, video=status
+                    )
+                except Exception as ex:
+                    print(ex)
+                    raise AssistantErr(_["play_14"])
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -202,6 +202,15 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
+            if not file_path:
+                n, stream_url = await YouTube.video(vidid, True)
+                if n == 1 and stream_url:
+                    file_path = stream_url
+                    direct = False
+                else:
+                    file_path, direct = await YouTube.download(
+                        vidid, mystic, videoid=True, video=status
+                    )
             await Alone.join_call(
                 chat_id,
                 original_chat_id,

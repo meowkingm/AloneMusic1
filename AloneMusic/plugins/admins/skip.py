@@ -119,6 +119,10 @@ async def skip(cli, message: Message, _, chat_id):
                                     except:
                                         return
                                     break
+                                else:
+                                    check = db.get(chat_id)
+                                    if not check:
+                                        return
                     else:
                         return await message.reply_text(_["admin_11"].format(count))
                 else:
@@ -147,6 +151,10 @@ async def skip(cli, message: Message, _, chat_id):
                         return await Alone.stop_stream(chat_id)
                     except:
                         return
+                else:
+                    check = db.get(chat_id)
+                    if not check:
+                        return
         except:
             try:
                 await message.reply_text(
@@ -158,6 +166,8 @@ async def skip(cli, message: Message, _, chat_id):
                 return await Alone.stop_stream(chat_id)
             except:
                 return
+    if not check:
+        return
     queued = check[0]["file"]
     title = (check[0]["title"]).title()
     user = check[0]["by"]

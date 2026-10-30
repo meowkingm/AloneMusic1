@@ -191,6 +191,10 @@ async def del_back_playlist(client, CallbackQuery, _):
                             return await Alone.stop_stream(chat_id)
                         except:
                             return
+                    else:
+                        check = db.get(chat_id)
+                        if not check:
+                            return
             except:
                 try:
                     await CallbackQuery.edit_message_text(
@@ -208,6 +212,8 @@ async def del_back_playlist(client, CallbackQuery, _):
         else:
             txt = f"➻ sᴛʀᴇᴀᴍ ʀᴇ-ᴘʟᴀʏᴇᴅ 🎄\n│ \n└ʙʏ : {mention} 🥀"
         await CallbackQuery.answer()
+        if not check:
+            return
         queued = check[0]["file"]
         title = (check[0]["title"]).title()
         user = check[0]["by"]

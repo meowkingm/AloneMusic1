@@ -146,6 +146,33 @@ class TestAutoplay(unittest.IsolatedAsyncioTestCase):
         item = db[chat_id][0]
         self.assertEqual(item["artist"], "Index Artist")
 
+    @patch("AloneMusic.utils.stream.stream.YouTube.video", new_callable=AsyncMock)
+    @patch("AloneMusic.utils.stream.stream.is_active_chat", new_callable=AsyncMock, return_value=False)
+    @patch("AloneMusic.utils.stream.stream.get_thumb", new_callable=AsyncMock, return_value="thumb.jpg")
+    @patch("AloneMusic.utils.stream.stream.Alone")
+    async def test_instant_join_call(self, mock_alone, mock_thumb, mock_active, mock_yt_video):
+        mock_join_call = AsyncMock()
+        mock_alone.join_call = mock_join_call
+        chat_id = -100123456789
+        mock_yt_video.return_value = (1, "http://example.com/stream.mp3")
+        mystic = AsyncMock()
+        _ = MagicMock(return_value="test")
+
+        result = {
+            "link": "https://youtube.com/watch?v=123",
+            "vidid": "123",
+            "title": "Instant Test Song",
+            "duration_min": "03:00",
+            "thumb": "thumb.jpg",
+        }
+
+        from AloneMusic.utils.stream.stream import stream
+        with patch("AloneMusic.utils.stream.stream.app.send_photo", new_callable=AsyncMock):
+            await stream(_, mystic, 123, result, chat_id, "Test User", chat_id, streamtype="youtube")
+
+        mock_join_call.assert_called_once()
+        self.assertEqual(mock_join_call.call_args[0][2], "http://example.com/stream.mp3")
+
     @patch("AloneMusic.core.call.get_lang", new_callable=AsyncMock, return_value="en")
     @patch("AloneMusic.utils.database.autoplaydb.update_one", new_callable=AsyncMock)
     @patch("AloneMusic.core.call.fetch_artist_tracks")
